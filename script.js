@@ -1,15 +1,27 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const bootSequenceContainer = document.getElementById('boot-sequence');
-    const dashboardContainer = document.getElementById('dashboard');
-    const mainUiContainer = document.getElementById('main-ui');
-    const foldersPanel = document.getElementById('folders-panel');
-    const contentPanel = document.getElementById('content-panel');
-    const footerContainer = document.getElementById('footer');
+    const terminal = document.getElementById('terminal');
+    let commandHistory = [];
+    let historyIndex = -1;
+    let inDestructSequence = false;
+    let destructStep = 0;
+    const destructCode = "MUTHUR";
 
-    let currentFolderIndex = 0;
+    function writeToTerminal(element) {
+        const inputContainer = document.getElementById('input-container');
+        if (inputContainer) {
+            terminal.insertBefore(element, inputContainer);
+        } else {
+            terminal.appendChild(element);
+        }
+        scrollToBottom();
+    }
+
+    function scrollToBottom() {
+        window.scrollTo(0, document.body.scrollHeight);
+    }
 
     const bootSequence = [
-        'INITIALIZING USCSS NOSTROMO PERSONAL TERMINAL...',
+        'INITIALIZING USCSS NOSTROMO TERMINAL...',
         'SYSTEM CHECK IN PROGRESS...',
         'MEMORY: 28K RAM OK',
         'LOADING CORE SYSTEMS...',
@@ -21,115 +33,120 @@ document.addEventListener('DOMContentLoaded', () => {
         'NAVIGATION: LOADED',
         'LOGS: LOADED',
         'BOOT SEQUENCE COMPLETE.',
-        'PRESS ANY KEY TO CONTINUE...'
     ];
 
-    function typeWriter(text, container, index, callback) {
-        if (index < text.length) {
-            container.innerHTML += text.charAt(index);
-            index++;
-            setTimeout(() => typeWriter(text, container, index, callback), 25);
-        } else if (callback) {
-            callback();
+    let i = 0;
+    function typeBootSequence() {
+        if (i < bootSequence.length) {
+            const p = document.createElement('p');
+            p.textContent = bootSequence[i];
+            terminal.appendChild(p);
+            i++;
+            setTimeout(typeBootSequence, 200);
+            scrollToBottom();
+        } else {
+            showMainMenu();
+            createInput();
         }
     }
 
-    function runBootSequence() {
-        let lineIndex = 0;
-        function nextLine() {
-            if (lineIndex < bootSequence.length) {
-                const p = document.createElement('p');
-                bootSequenceContainer.appendChild(p);
-                typeWriter(bootSequence[lineIndex], p, 0, nextLine);
-                lineIndex++;
-            } else {
-                document.addEventListener('keydown', showDashboard, { once: true });
-            }
-        }
-        nextLine();
-    }
-
-    function showDashboard() {
-        bootSequenceContainer.classList.add('hidden');
-        dashboardContainer.classList.remove('hidden');
-        footerContainer.classList.remove('hidden');
-        renderDashboard();
-        setTimeout(() => {
-             document.addEventListener('keydown', showMainUi, { once: true });
-        }, 1000)
-    }
-
-    function showMainUi() {
-        dashboardContainer.classList.add('hidden');
-        mainUiContainer.classList.remove('hidden');
-        renderMainUi();
-        document.addEventListener('keydown', handleKeyPress);
-    }
-
-    function renderDashboard() {
-        const status = getShipStatusData();
-        const crew = getCrewData();
-        dashboardContainer.innerHTML = `
-            <div class="box"><h2>SYSTEM DASHBOARD</h2></div>
-            <div class="box">
-                <h3>SHIP STATUS OVERVIEW</h3>
-                <p><strong>POSITION:</strong> ${status.position}</p>
-                <p><strong>DESTINATION:</strong> ${status.destination}</p>
-                <p><strong>ENERGY LEVEL:</strong> <span class="warning">${status.energyLevel}</span></p>
-                <p><strong>LIFE SUPPORT:</strong> ${status.lifeSupport}</p>
-            </div>
-            <div class="box">
-                <h3>CREW OVERVIEW</h3>
-                <p><strong>ASSIGNED PERSONNEL:</strong> ${crew.length}</p>
-                <p><strong>STATUS:</strong> All crew accounted for.</p>
-            </div>
+    function showMainMenu() {
+        const p = document.createElement('p');
+        p.innerHTML = `
+            <p>AWAITING COMMAND...</p>
+            <p>AVAILABLE MODULES:</p>
+            <ul>
+                <li>CREW</li>
+                <li>STATUS</li>
+                <li>NAV</li>
+                <li>LOG</li>
+                <li>DESTRUCT</li>
+                <li>MENU</li>
+            </ul>
         `;
+        writeToTerminal(p);
     }
 
-    const folders = [
-        { name: 'CREW ROSTER', content: getCrewContent },
-        { name: 'SHIP STATUS', content: getStatusContent },
-        { name: 'NAVIGATION', content: getNavContent },
-        { name: 'SHIP LOGS', content: getLogContent },
-        { name: 'SELF-DESTRUCT', content: getDestructContent }
-    ];
+    function createInput() {
+        const inputContainer = document.createElement('div');
+        inputContainer.id = 'input-container';
+        const span = document.createElement('span');
+        span.textContent = '> ';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'command-input';
+        input.autofocus = true;
 
-    function renderMainUi() {
-        foldersPanel.innerHTML = '<h3>FOLDERS</h3>';
-        folders.forEach((folder, index) => {
-            const div = document.createElement('div');
-            div.textContent = folder.name;
-            div.classList.add('folder-item');
-            if (index === currentFolderIndex) {
-                div.classList.add('selected');
+        inputContainer.appendChild(span);
+        inputContainer.appendChild(input);
+        terminal.appendChild(inputContainer);
+
+        input.focus();
+
+        input.addEventListener('keydown', handleCommand);
+        scrollToBottom();
+    }
+
+    function handleCommand(e) {
+        if (e.key === 'Enter') {
+            const command = e.target.value.trim().toUpperCase();
+            const output = document.createElement('p');
+            output.textContent = `> ${command}`;
+            writeToTerminal(output);
+
+            if (inDestructSequence) {
+                handleDestructCommand(command);
+            } else {
+                commandHistory.unshift(command);
+                historyIndex = -1;
+                processCommand(command);
             }
-            foldersPanel.appendChild(div);
-        });
-        contentPanel.innerHTML = folders[currentFolderIndex].content();
-    }
-
-    function handleKeyPress(e) {
-        switch (e.key) {
-            case 'ArrowUp':
-                currentFolderIndex = (currentFolderIndex > 0) ? currentFolderIndex - 1 : folders.length - 1;
-                renderMainUi();
-                break;
-            case 'ArrowDown':
-                currentFolderIndex = (currentFolderIndex < folders.length - 1) ? currentFolderIndex + 1 : 0;
-                renderMainUi();
-                break;
-            case 'PageUp':
-                contentPanel.scrollTop -= 100;
-                break;
-            case 'PageDown':
-                contentPanel.scrollTop += 100;
-                break;
+            e.target.value = '';
+        } else if (e.key === 'ArrowUp') {
+            if (historyIndex < commandHistory.length - 1) {
+                historyIndex++;
+                e.target.value = commandHistory[historyIndex];
+            }
+        } else if (e.key === 'ArrowDown') {
+            if (historyIndex > 0) {
+                historyIndex--;
+                e.target.value = commandHistory[historyIndex];
+            } else if (historyIndex === 0) {
+                historyIndex = -1;
+                e.target.value = '';
+            }
         }
     }
 
-    // Data and Content Functions
-    function getCrewData() {
-        return [
+    function processCommand(command) {
+        switch (command) {
+            case 'CREW':
+                showCrewRoster();
+                break;
+            case 'STATUS':
+                showShipStatus();
+                break;
+            case 'NAV':
+                showNavigation();
+                break;
+            case 'LOG':
+                showLog();
+                break;
+            case 'DESTRUCT':
+                initiateSelfDestruct();
+                break;
+            case 'MENU':
+                showMainMenu();
+                break;
+            default:
+                const p = document.createElement('p');
+                p.textContent = `UNKNOWN COMMAND: ${command}`;
+                writeToTerminal(p);
+        }
+    }
+
+    function showCrewRoster() {
+        const crew = [
             { name: 'Arthur Dallas', role: "Captain/Ship's Master" },
             { name: 'Thomas Kane', role: 'Executive Officer' },
             { name: 'Ellen Ripley', role: 'Warrant Officer' },
@@ -139,24 +156,21 @@ document.addEventListener('DOMContentLoaded', () => {
             { name: 'Samuel Brett', role: 'Engineers Mate/Engineering Technician' },
             { name: 'Jones', role: "Ship's cat" }
         ];
-    }
 
-    function getCrewContent() {
-        const crew = getCrewData();
-        let content = '<h3>CREW ROSTER</h3>';
+        const p = document.createElement('p');
+        p.innerHTML = '<h3>CREW ROSTER</h3>';
+        const ul = document.createElement('ul');
         crew.forEach(member => {
-            content += `
-                <div class="box">
-                    <p><strong>NAME:</strong> ${member.name}</p>
-                    <p><strong>ROLE:</strong> ${member.role}</p>
-                </div>
-            `;
+            const li = document.createElement('li');
+            li.textContent = `${member.name} - ${member.role}`;
+            ul.appendChild(li);
         });
-        return content;
+        p.appendChild(ul);
+        writeToTerminal(p);
     }
 
-    function getShipStatusData() {
-        return {
+    function showShipStatus() {
+        const status = {
             position: 'Orbiting LV-426, Zeta-2 Reticuli System',
             destination: 'Sol System (Rerouted)',
             energyLevel: '75% (Minor fluctuations detected)',
@@ -166,72 +180,124 @@ document.addEventListener('DOMContentLoaded', () => {
             engines: 'ONLINE (Requires maintenance)',
             communications: 'OFFLINE (Atmospheric interference)'
         };
-    }
 
-    function getStatusContent() {
-        const status = getShipStatusData();
-        let content = '<h3>SHIP STATUS</h3>';
+        const p = document.createElement('p');
+        p.innerHTML = '<h3>SHIP STATUS</h3>';
+        const ul = document.createElement('ul');
         for (const key in status) {
-            const capitalizedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-            content += `<p><strong>${capitalizedKey}:</strong> ${status[key]}</p>`;
+            const li = document.createElement('li');
+            const capitalizedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, function(str){ return str.toUpperCase() });
+            li.textContent = `${capitalizedKey}: ${status[key]}`;
+            ul.appendChild(li);
         }
-        return `<div class="box">${content}</div>`;
+        p.appendChild(ul);
+        writeToTerminal(p);
     }
 
-    function getNavContent() {
-        return `
-            <div class="box">
-                <h3>NAVIGATION</h3>
-                <p><strong>CURRENT COURSE:</strong> Rerouted to LV-426, Zeta-2 Reticuli System</p>
-                <p><strong>ORIGINAL DESTINATION:</strong> Sol System</p>
-                <pre>
-        * (Sol System) <--[Route Home]-- * (Thedus)
-                                            |
-                                            | [Current Position]
-                                            V
-                                        * (LV-426)
-                </pre>
-            </div>
+    function showNavigation() {
+        const p = document.createElement('p');
+        p.innerHTML = `
+            <h3>NAVIGATION</h3>
+            <p>CURRENT COURSE: Rerouted to LV-426, Zeta-2 Reticuli System</p>
+            <p>ORIGINAL DESTINATION: Sol System</p>
+            <br>
+            <pre>
+    * (Sol System) <--[Route Home]-- * (Thedus)
+                                        |
+                                        | [Current Position]
+                                        V
+                                    * (LV-426)
+            </pre>
         `;
+        writeToTerminal(p);
     }
 
-    function getLogContent() {
-        return `
-            <div class="box">
-                <h3>SHIP'S LOG</h3>
-                <p><strong>DEPARTURE:</strong> Earth, 2120</p>
-                <ul>
-                    <li>Departed Earth on a one-month trip to Neptune.</li>
-                    <li>Connected with cargo hauler at Neptune.</li>
-                    <li>Departed for Thedus on an eight-month interstellar journey.</li>
-                </ul>
-                <p><strong>ARRIVAL:</strong> Thedus</p>
-                <ul>
-                    <li>Spent eight weeks loading cargo.</li>
-                    <li>Shuttle 'Salmacis' damaged in a loading accident.</li>
-                    <li>Science Officer replaced with Ash (Synthetic) two days before departure.</li>
-                    <li>Departed Thedus for Sol System.</li>
-                </ul>
-                <p><strong>INCIDENT:</strong> LV-426, June 3, 2122</p>
-                <ul>
-                    <li>Return trip rerouted to investigate an unidentified signal from Acheron (LV-426).</li>
-                    <li>Ship damaged during landing, causing an electrical fire.</li>
-                    <li>Executive Officer Kane brought back with an unknown organism attached.</li>
-                    <li>Quarantine broken by Science Officer Ash.</li>
-                </ul>
-            </div>
+    function showLog() {
+        const log = `
+<pre>
+LOG: USCSS NOSTROMO - LAST VOYAGE
+
+DEPARTURE: Earth, 2120
+- Departed Earth on a one-month trip to Neptune.
+- Connected with cargo hauler at Neptune.
+- Departed for Thedus on an eight-month interstellar journey.
+
+ARRIVAL: Thedus
+- Spent eight weeks loading cargo.
+- Shuttle 'Salmacis' damaged in a loading accident.
+- Science Officer replaced with Ash (Synthetic) two days before departure.
+- Departed Thedus for Sol System.
+
+INCIDENT: LV-426, June 3, 2122
+- Return trip rerouted to investigate an unidentified signal from Acheron (LV-426).
+- Ship damaged during landing due to dust in an engine intake, causing an electrical fire.
+- Executive Officer Thomas Kane brought back to the ship with an unknown organism attached.
+- Quarantine procedure broken by Science Officer Ash.
+- Departed LV-426 despite several non-critical systems remaining unrepaired.
+</pre>
         `;
+        const p = document.createElement('p');
+        p.innerHTML = '<h3>SHIP\'S LOG</h3>' + log;
+        writeToTerminal(p);
     }
 
-    function getDestructContent() {
-        return `
-            <div class="box">
-                <h3>SELF-DESTRUCT SEQUENCE</h3>
-                <p class="warning">WARNING: UNAUTHORIZED ACCESS</p>
-                <p>This terminal does not have the required clearance to initiate the self-destruct sequence. Please use the emergency console on the bridge.</p>
-            </div>
-        `;
+    function initiateSelfDestruct() {
+        inDestructSequence = true;
+        destructStep = 1;
+        const p = document.createElement('p');
+        p.textContent = 'WARNING: Are you sure you want to initiate the self-destruct sequence? (YES/NO)';
+        writeToTerminal(p);
     }
 
-    runBootSequence();
+    function handleDestructCommand(command) {
+        if (destructStep === 1) {
+            if (command === 'YES') {
+                const p = document.createElement('p');
+                p.textContent = 'Enter activation code:';
+                writeToTerminal(p);
+                destructStep = 2;
+            } else {
+                abortDestruct();
+            }
+        } else if (destructStep === 2) {
+            if (command === destructCode) {
+                startDestructCountdown();
+            } else {
+                const p = document.createElement('p');
+                p.textContent = 'Incorrect code.';
+                writeToTerminal(p);
+                abortDestruct();
+            }
+        }
+    }
+
+    function abortDestruct() {
+        const p = document.createElement('p');
+        p.textContent = 'Self-destruct sequence aborted.';
+        writeToTerminal(p);
+        inDestructSequence = false;
+        destructStep = 0;
+    }
+
+    function startDestructCountdown() {
+        const p = document.createElement('p');
+        p.textContent = 'Self-destruct sequence activated. T-minus 10 seconds.';
+        writeToTerminal(p);
+        let countdown = 10;
+        const interval = setInterval(() => {
+            countdown--;
+            const p = document.createElement('p');
+            p.textContent = `T-${countdown}`;
+            writeToTerminal(p);
+            if (countdown === 0) {
+                clearInterval(interval);
+                const finalP = document.createElement('p');
+                finalP.textContent = 'SHIP WILL DETONATE IN T-MINUS 0 SECONDS. GOODBYE.';
+                writeToTerminal(finalP);
+                document.getElementById('command-input').disabled = true;
+            }
+        }, 1000);
+    }
+
+    typeBootSequence();
 });
