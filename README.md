@@ -40,4 +40,3 @@ This project is ready to be deployed to GitHub Pages. To deploy the site, follow
 4.  **Save your changes:** Click the "Save" button.
 
 GitHub will then build and deploy your site. You'll be provided with a URL where you can view the live version of your Nostromo Terminal UI.
-Make it deployable to github pages.
