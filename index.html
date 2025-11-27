@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nostromo Personal Terminal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="crt">
+        <div class="scanline"></div>
+        <div id="terminal-window">
+            <div id="boot-sequence"></div>
+            <div id="dashboard" class="hidden"></div>
+            <div id="main-ui" class="hidden">
+                <div id="folders-panel"></div>
+                <div id="content-panel"></div>
+            </div>
+            <div id="footer" class="hidden">
+                <span>UP, DOWN: select folder</span> | <span>PAGE UP, PAGE DOWN: scroll</span>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
