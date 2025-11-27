@@ -1,16 +1,15 @@
-body {
+body, html {
     background-color: #000;
     color: #0f0;
     font-family: "Pixelify Sans", monospace;
     margin: 0;
     padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
 }
 
-html {
-  height: 100%;
-}
-
-body::after {
+.crt::after {
     content: " ";
     display: block;
     position: absolute;
@@ -24,33 +23,71 @@ body::after {
     background-size: 100% 2px, 3px 100%;
 }
 
-
-#terminal {
-    padding: 10px;
-    text-shadow: 0 0 5px #0f0;
+.crt {
     animation: flicker 0.15s infinite;
 }
 
-#command-input {
-    background: transparent;
-    border: none;
-    color: #0f0;
-    font-family: "Pixelify Sans", monospace;
-    font-size: 1em;
-    outline: none;
-    text-shadow: 0 0 5px #0f0;
-    width: 90%;
+@keyframes flicker {
+    0% { opacity: 1; }
+    50% { opacity: 0.8; }
+    100% { opacity: 1; }
 }
 
+#terminal-window {
+    padding: 20px;
+    height: calc(100vh - 40px);
+    display: flex;
+    flex-direction: column;
+    text-shadow: 0 0 5px #0f0;
+}
 
-@keyframes flicker {
-    0% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.8;
-    }
-    100% {
-        opacity: 1;
-    }
+#boot-sequence, #dashboard, #main-ui {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+#main-ui {
+    display: flex;
+    gap: 20px;
+}
+
+#folders-panel {
+    width: 20%;
+    border: 1px solid #0f0;
+    padding: 10px;
+}
+
+#content-panel {
+    width: 80%;
+    border: 1px solid #0f0;
+    padding: 10px;
+    overflow-y: auto;
+    max-height: calc(100vh - 120px); /* Adjust as needed */
+}
+
+.folder-item {
+    padding: 5px;
+    border: 1px solid transparent;
+}
+
+.folder-item.selected {
+    border: 1px solid #0f0;
+    background-color: rgba(0, 255, 0, 0.1);
+}
+
+.box {
+    border: 1px solid #0f0;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+#footer {
+    border-top: 1px solid #0f0;
+    padding-top: 5px;
+    margin-top: 10px;
+    text-align: center;
+}
+
+.hidden {
+    display: none;
 }
